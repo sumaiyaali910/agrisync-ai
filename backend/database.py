@@ -3,31 +3,38 @@ AgriSync AI — Production Multi-Engine Database Layer (database.py)
 Supports:
 1. MongoDB Atlas (via MONGODB_URI environment variable)
 2. Firebase Realtime Database / Firestore REST API (via FIREBASE_DB_URL)
-3. Built-in SQLite3 Persistent Database (agrisync_production.db) — Zero-config default
-   so all Labour Registrations and Gov Subsidy Registrations are permanently stored on disk
-   and immediately visible to all users.
+3. Serverless-safe SQLite3 + In-Memory Fallback (uses /tmp on Vercel Serverless)
 """
 
 import os
 import json
 import sqlite3
+import tempfile
 import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 
-DB_FILE = Path(__file__).resolve().parent / "agrisync_production.db"
-ENV_FILE = Path(__file__).resolve().parent / ".env"
+BASE_DIR = Path(__file__).resolve().parent
+ENV_FILE = BASE_DIR / ".env"
 
-# Automatically load backend/.env if present on local machine
+# Load local .env if present
 if ENV_FILE.exists():
-    for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    try:
+        for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    except Exception:
+        pass
 
-# Optional MongoDB driver
+# Choose writable SQLite path (/tmp on Vercel Serverless, local folder on PC/Render)
+if os.getenv("VERCEL") or not os.access(BASE_DIR, os.W_OK):
+    DB_FILE = Path(tempfile.gettempdir()) / "agrisync_production.db"
+else:
+    DB_FILE = BASE_DIR / "agrisync_production.db"
+
 try:
     from pymongo import MongoClient
     PYMONGO_AVAILABLE = True
@@ -123,153 +130,168 @@ class AgriSyncDatabase:
     def __init__(self):
         self.mongo_client = None
         self.mongo_db = None
-        self.storage_engine = "SQLite3 (Persistent Disk) + Cloud Ready"
+        self.memory_store: List[Dict[str, Any]] = list(DEFAULT_SINDH_LABOURERS)
+        self.storage_engine = "Cloud & Local Persistent DB"
 
         if PYMONGO_AVAILABLE and MONGODB_URI:
             try:
-                self.mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=3000)
+                self.mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=3500)
                 self.mongo_client.server_info()
                 self.mongo_db = self.mongo_client["agrisync_sindh"]
                 self.storage_engine = "MongoDB Atlas Cloud"
+                # Seed default labourers into MongoDB if collection is empty
+                if self.mongo_db.labourers.count_documents({}) == 0:
+                    self.mongo_db.labourers.insert_many(
+                        [dict(item) for item in DEFAULT_SINDH_LABOURERS]
+                    )
             except Exception as exc:
-                print(f"MongoDB connection fallback to SQLite: {exc}")
+                print(f"MongoDB fallback notice: {exc}")
 
-        if FIREBASE_DB_URL and self.storage_engine.startswith("SQLite"):
-            self.storage_engine = "Firebase Realtime DB + SQLite Mirror"
+        if FIREBASE_DB_URL and self.mongo_db is None:
+            self.storage_engine = "Firebase Realtime DB"
 
         self._init_sqlite()
 
     def _init_sqlite(self):
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS labourers (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                cnic TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                district TEXT NOT NULL,
-                address TEXT NOT NULL,
-                skills_json TEXT NOT NULL,
-                daily_wage INTEGER NOT NULL,
-                availability TEXT NOT NULL,
-                verified INTEGER DEFAULT 1,
-                created_at TEXT NOT NULL
-            )
-            """
-        )
-        cursor.execute("SELECT COUNT(*) FROM labourers")
-        count = cursor.fetchone()[0]
-        if count == 0:
-            for item in DEFAULT_SINDH_LABOURERS:
-                cursor.execute(
-                    """
-                    INSERT INTO labourers
-                    (id, name, cnic, phone, district, address, skills_json, daily_wage, availability, verified, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        item["id"],
-                        item["name"],
-                        item["cnic"],
-                        item["phone"],
-                        item["district"],
-                        item["address"],
-                        json.dumps(item["skills"]),
-                        item["dailyWage"],
-                        item["availability"],
-                        1 if item["verified"] else 0,
-                        item["createdAt"],
-                    ),
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS labourers (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    cnic TEXT NOT NULL,
+                    phone TEXT NOT NULL,
+                    district TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    skills_json TEXT NOT NULL,
+                    daily_wage INTEGER NOT NULL,
+                    availability TEXT NOT NULL,
+                    verified INTEGER DEFAULT 1,
+                    created_at TEXT NOT NULL
                 )
-        conn.commit()
-        conn.close()
+                """
+            )
+            cursor.execute("SELECT COUNT(*) FROM labourers")
+            count = cursor.fetchone()[0]
+            if count == 0:
+                for item in DEFAULT_SINDH_LABOURERS:
+                    cursor.execute(
+                        """
+                        INSERT INTO labourers
+                        (id, name, cnic, phone, district, address, skills_json, daily_wage, availability, verified, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            item["id"],
+                            item["name"],
+                            item["cnic"],
+                            item["phone"],
+                            item["district"],
+                            item["address"],
+                            json.dumps(item["skills"]),
+                            item["dailyWage"],
+                            item["availability"],
+                            1 if item["verified"] else 0,
+                            item["createdAt"],
+                        ),
+                    )
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            print(f"SQLite init notice (using memory/cloud store): {exc}")
 
     def get_all_labourers(self, district: str = "ALL", skill: str = "ALL") -> List[Dict[str, Any]]:
-        # 1. Try MongoDB Atlas if connected
         if self.mongo_db is not None:
-            query: Dict[str, Any] = {}
-            if district and district != "ALL":
-                query["district"] = district
-            if skill and skill != "ALL":
-                query["skills"] = skill
-            docs = list(self.mongo_db.labourers.find(query, {"_id": 0}).sort("createdAt", -1))
-            if docs:
-                return docs
+            try:
+                query: Dict[str, Any] = {}
+                if district and district != "ALL":
+                    query["district"] = district
+                if skill and skill != "ALL":
+                    query["skills"] = skill
+                docs = list(self.mongo_db.labourers.find(query, {"_id": 0}).sort("createdAt", -1))
+                if docs:
+                    return docs
+            except Exception as exc:
+                print(f"MongoDB read fallback: {exc}")
 
-        # 2. Fetch from persistent SQLite database
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id, name, cnic, phone, district, address, skills_json, daily_wage, availability, verified, created_at
-            FROM labourers
-            ORDER BY created_at DESC
-            """
-        )
-        rows = cursor.fetchall()
-        conn.close()
-
-        results = []
-        for r in rows:
-            skills_list = json.loads(r[6])
-            if district and district != "ALL" and r[4].lower() != district.lower():
-                continue
-            if skill and skill != "ALL" and skill not in skills_list:
-                continue
-            results.append(
-                {
-                    "id": r[0],
-                    "name": r[1],
-                    "cnic": r[2],
-                    "phone": r[3],
-                    "district": r[4],
-                    "address": r[5],
-                    "skills": skills_list,
-                    "dailyWage": r[7],
-                    "availability": r[8],
-                    "verified": bool(r[9]),
-                    "createdAt": r[10],
-                }
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, name, cnic, phone, district, address, skills_json, daily_wage, availability, verified, created_at
+                FROM labourers
+                ORDER BY created_at DESC
+                """
             )
-        return results
+            rows = cursor.fetchall()
+            conn.close()
+
+            results = []
+            for r in rows:
+                skills_list = json.loads(r[6])
+                if district and district != "ALL" and r[4].lower() != district.lower():
+                    continue
+                if skill and skill != "ALL" and skill not in skills_list:
+                    continue
+                results.append(
+                    {
+                        "id": r[0],
+                        "name": r[1],
+                        "cnic": r[2],
+                        "phone": r[3],
+                        "district": r[4],
+                        "address": r[5],
+                        "skills": skills_list,
+                        "dailyWage": r[7],
+                        "availability": r[8],
+                        "verified": bool(r[9]),
+                        "createdAt": r[10],
+                    }
+                )
+            return results
+        except Exception:
+            return self.memory_store
 
     def add_labourer(self, record: Dict[str, Any]) -> Dict[str, Any]:
-        # Save to SQLite persistent disk
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO labourers
-            (id, name, cnic, phone, district, address, skills_json, daily_wage, availability, verified, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                record["id"],
-                record["name"],
-                record["cnic"],
-                record["phone"],
-                record["district"],
-                record["address"],
-                json.dumps(record["skills"]),
-                int(record["dailyWage"]),
-                record.get("availability", "Available Now"),
-                1,
-                record["createdAt"],
-            ),
-        )
-        conn.commit()
-        conn.close()
+        self.memory_store.insert(0, dict(record))
 
-        # Mirror to MongoDB Atlas if configured
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO labourers
+                (id, name, cnic, phone, district, address, skills_json, daily_wage, availability, verified, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record["id"],
+                    record["name"],
+                    record["cnic"],
+                    record["phone"],
+                    record["district"],
+                    record["address"],
+                    json.dumps(record["skills"]),
+                    int(record["dailyWage"]),
+                    record.get("availability", "Available Now"),
+                    1,
+                    record["createdAt"],
+                ),
+            )
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            print(f"SQLite write notice: {exc}")
+
         if self.mongo_db is not None:
             try:
                 self.mongo_db.labourers.insert_one(dict(record))
             except Exception as exc:
                 print(f"MongoDB insert warning: {exc}")
 
-        # Mirror to Firebase Realtime DB if configured
         if FIREBASE_DB_URL:
             try:
                 fb_endpoint = f"{FIREBASE_DB_URL.rstrip('/')}/labourers/{record['id']}.json"
