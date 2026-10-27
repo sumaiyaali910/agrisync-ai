@@ -7,8 +7,16 @@ from pathlib import Path
 from typing import List, Optional, Literal, Dict, Any
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import BaseModel, Field
+
+try:
+    from backend.static_assets import INDEX_HTML, STYLES_CSS, SCRIPT_JS
+except ImportError:
+    try:
+        from static_assets import INDEX_HTML, STYLES_CSS, SCRIPT_JS
+    except ImportError:
+        from api.static_assets import INDEX_HTML, STYLES_CSS, SCRIPT_JS
 
 try:
     from backend.database import db_engine
@@ -279,18 +287,28 @@ class VisionDiagnosisResponse(BaseModel):
 # ==============================================================================
 
 @app.get("/")
+@app.get("/index.html")
 async def serve_index():
-    return FileResponse(BASE_DIR / "index.html")
+    return Response(content=INDEX_HTML, media_type="text/html; charset=utf-8")
 
 
 @app.get("/styles.css")
 async def serve_css():
-    return FileResponse(BASE_DIR / "styles.css", media_type="text/css")
+    return Response(content=STYLES_CSS, media_type="text/css; charset=utf-8")
 
 
 @app.get("/script.js")
 async def serve_js():
-    return FileResponse(BASE_DIR / "script.js", media_type="application/javascript")
+    return Response(content=SCRIPT_JS, media_type="application/javascript; charset=utf-8")
+
+
+@app.get("/api/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "AgriSync AI — Sindh Agricultural Orchestration API",
+        "storageEngine": db_engine.storage_engine,
+    }
 
 
 # ==============================================================================
