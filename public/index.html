@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgriSync AI — Sindh Smart Agriculture, Mandi AI, Pesticide Locator & Labour Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet Interactive Satellite & Street Map CSS & JS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <!-- Custom Stylesheet (Dark & Light Mode + Animations) -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950 pb-20">
+
+  <!-- =====================================================================
+       TOP TELEMETRY, THEME SWITCHER & MULTILINGUAL BAR (English | اردو | سنڌي)
+       ===================================================================== -->
+  <header class="sticky top-0 z-40 border-b border-emerald-900/50 bg-slate-950/90 backdrop-blur-md">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3.5">
+      <div class="flex items-center gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-700 text-slate-950 font-black text-xl shadow-lg">
+          🌱
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 id="ui-title" class="text-xl font-bold tracking-tight text-emerald-400">AgriSync AI</h1>
+            <span id="ui-season-badge" class="rounded-full border border-amber-500/30 bg-amber-950/60 px-2.5 py-0.5 text-xs font-medium text-amber-300">
+              Rabi & Kharif Full-Stack Platform
+            </span>
+          </div>
+          <p id="ui-subtitle" class="text-xs text-slate-400">
+            Sindh Smart Agriculture, Live Land GPS, Mandi AI & Labour Portal
+          </p>
+        </div>
+      </div>
+
+      <!-- Navigation + Dark/Light Mode Toggle + 3-Way Language Switcher -->
+      <div class="flex flex-wrap items-center gap-2">
+        <nav class="hidden xl:flex items-center gap-3.5 text-xs font-semibold text-slate-300 mr-1">
+          <a href="#land-weather-section" class="hover:text-emerald-400 transition">Map & Weather</a>
+          <a href="#marketplace-section" class="hover:text-emerald-400 transition">Mandi Price AI</a>
+          <a href="#crops-lifecycle-section" class="hover:text-emerald-400 transition">Crops & Thresher</a>
+          <a href="#crop-doctor-section" class="hover:text-emerald-400 transition">Disease & Dealers</a>
+          <a href="#labour-portal-section" class="hover:text-emerald-400 transition">Labour Portal</a>
+          <a href="#gov-portal-section" class="hover:text-emerald-400 transition">Gov Subsidy</a>
+        </nav>
+
+        <!-- Dark / Light Mode Toggle Button -->
+        <button
+          id="theme-toggle-btn"
+          type="button"
+          onclick="toggleTheme()"
+          class="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-amber-300 shadow hover:border-emerald-500 transition"
+        >
+          ☀️ <span>Light Mode (Field Sun)</span>
+        </button>
+
+        <!-- Language Switcher -->
+        <div class="flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/90 p-1">
+          <button id="lang-btn-en" onclick="setLanguage('en')" class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-500 text-slate-950 shadow-md transition-all">
+            English
+          </button>
+          <button id="lang-btn-ur" onclick="setLanguage('ur')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            اردو
+          </button>
+          <button id="lang-btn-sd" onclick="setLanguage('sd')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            سنڌي
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl space-y-10 px-4 pt-6">
+
+    <!-- =====================================================================
+         SECTION 1: LIVE GPS LAND TRACKER (SATELLITE/GOOGLE MAPS) & WEATHER ALERTS
+         ===================================================================== -->
+    <section id="land-weather-section" class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="ui-map-header" class="text-xl font-extrabold text-white">
+            Live GPS Land Tracker & Real-Time Weather Radar
+          </h2>
+          <p id="ui-map-sub" class="text-xs text-slate-400">
+            Click anywhere on the map or use Live GPS to pinpoint your farm plot, canal command & rain alerts
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            id="ui-detect-gps-btn"
+            type="button"
+            onclick="detectUserLiveGPS()"
+            class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-extrabold text-slate-950 shadow-md hover:bg-emerald-400 transition"
+          >
+            📍 Detect My Live GPS Land
+          </button>
+          <button
+            id="ui-sim-rain-btn"
+            type="button"
+            onclick="toggleSimulateRainAlert()"
+            class="rounded-xl border border-amber-500/50 bg-amber-950/50 px-3.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-900/50 transition"
+          >
+            🌧️ Simulate Rain Alert
+          </button>
+          <a
+            id="google-maps-direct-link"
+            href="https://www.google.com/maps?q=27.7052,68.8574&z=16&t=k"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-xs font-semibold text-emerald-400 hover:border-emerald-500 transition"
+          >
+            🗺️ Open in Google Maps ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- Dynamic Weather Alert Banner -->
+      <div
+        id="weather-alert-banner"
+        class="rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-4 transition-all"
+      >
+        <div id="weather-alert-title" class="text-sm font-bold uppercase tracking-wide text-emerald-300 flex items-center gap-2">
+          ✅ CLEAR AGRO-WEATHER WINDOW — SAFE FOR SEEDING, IRRIGATION & THRESHER
+        </div>
+        <p id="weather-alert-desc" class="mt-1.5 text-xs leading-relaxed text-slate-200">
+          No rain expected in the next 48 hours. Optimal window for seed drilling, scheduled canal irrigation, and running grain threshers.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <!-- LEFT: Interactive Satellite / Street Map -->
+        <div class="agri-card rounded-3xl p-4 shadow-xl lg:col-span-7 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-xs font-bold text-emerald-400">Sindh Quick-Jump:</span>
+              <button onclick="selectMapDistrict('Sukkur')" class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:border-emerald-500">Sukkur</button>
+              <button onclick="selectMapDistrict('Larkana')" class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:border-emerald-500">Larkana</button>
+              <button onclick="selectMapDistrict('Sanghar')" class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:border-emerald-500">Sanghar</button>
+              <button onclick="selectMapDistrict('Mirpurkhas')" class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:border-emerald-500">Mirpurkhas</button>
+              <button onclick="selectMapDistrict('Badin')" class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:border-emerald-500">Badin</button>
+              <button onclick="selectMapDistrict('Hyderabad')" class="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:border-emerald-500">Hyderabad</button>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button id="map-layer-satellite" onclick="switchMapLayer('satellite')" class="rounded-lg bg-emerald-500 px-3 py-1 text-xs font-bold text-slate-950">Satellite</button>
+              <button id="map-layer-street" onclick="switchMapLayer('street')" class="rounded-lg bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">Canal / Street</button>
+            </div>
+          </div>
+
+          <div id="sindh-land-map" class="border border-slate-800 shadow-inner"></div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+            <span id="gps-status-badge" class="font-medium text-emerald-400">
+              ✓ Click anywhere on the satellite map to mark your exact field boundary
+            </span>
+            <span>Green Polygon = 12-Acre Farm Boundary</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: Identified Land Profile & Live Weather Radar Cards -->
+        <div class="space-y-4 lg:col-span-5">
+          <div class="agri-card rounded-3xl p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                🛰️ Identified Farm Land Telemetry
+              </span>
+              <span id="loc-coords-text" class="font-mono text-xs text-amber-300">27.7052° N, 68.8574° E</span>
+            </div>
+
+            <div>
+              <span class="text-[11px] uppercase text-slate-400">District / Zone</span>
+              <h3 id="loc-district-name" class="text-lg font-extrabold text-white">Sukkur Division</h3>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <span class="text-[11px] font-semibold uppercase text-slate-400">Canal Command (SIDA)</span>
+                <p id="loc-canal-text" class="mt-1 text-xs font-bold text-emerald-300">
+                  Sukkur Barrage • Rohri & Nara Canal Command
+                </p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <span class="text-[11px] font-semibold uppercase text-slate-400">Soil Classification</span>
+                <p id="loc-soil-text" class="mt-1 text-xs font-bold text-amber-300">
+                  Alluvial Silt Loam (Kacho & Pacco Plains)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="agri-card rounded-3xl p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-400">
+                🌦️ Live Field Weather & Rain Forecast
+              </span>
+              <span id="wx-rain-prob" class="rounded-full bg-sky-500/20 px-2.5 py-0.5 text-xs font-bold text-sky-300">
+                10% Rain Prob
+              </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2.5 text-center">
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <span class="text-[11px] text-slate-400">Temperature</span>
+                <p id="wx-temp-val" class="mt-1 text-lg font-extrabold text-white">28.4°C</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <span class="text-[11px] text-slate-400">Humidity</span>
+                <p id="wx-humidity-val" class="mt-1 text-lg font-extrabold text-emerald-400">44%</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <span class="text-[11px] text-slate-400">Wind Speed</span>
+                <p id="wx-wind-val" class="mt-1 text-lg font-extrabold text-amber-300">12.5 km/h</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-3.5 py-2.5 text-xs">
+              <span class="text-slate-400">Radar Status:</span>
+              <span id="wx-condition-text" class="font-bold text-white">Clear Field Conditions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 2: AGRI MARKETPLACE & AI "BEST TIME TO SELL" PRICE PREDICTOR
+         ===================================================================== -->
+    <section id="marketplace-section" class="space-y-5 pt-2">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📈</span>
+            <h2 class="text-2xl font-extrabold text-white">
+              Sindh Agri Marketplace & AI "Best Time to Sell" Engine
+            </h2>
+          </div>
+          <p class="mt-1 text-xs text-slate-400">
+            Live wholesale Mandi rates per 40kg (Maund / مڻ / من) with AI peak price forecasting so farmers sell at maximum profit
+          </p>
+        </div>
+
+        <span class="rounded-full border border-emerald-500/40 bg-emerald-950/70 px-3.5 py-1 text-xs font-bold text-emerald-300">
+          ● Connected to Sukkur, Hyderabad, Sanghar & Larkana Mandis
+        </span>
+      </div>
+
+      <!-- 6 Crop Mandi Cards Grid -->
+      <div id="marketplace-cards-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+
+      <!-- Interactive Farmer Profit & Optimal Selling Window Calculator -->
+      <div class="rounded-3xl border border-emerald-800/60 bg-gradient-to-br from-emerald-950/50 via-slate-900 to-amber-950/30 p-6 shadow-2xl">
+        <div class="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+          <div class="space-y-3 lg:col-span-7">
+            <span class="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-300">
+              💰 AI Mandi Timing & Profit Maximizer
+            </span>
+            <h3 id="mkt-selected-title" class="text-2xl font-extrabold text-white">
+              🌾 Wheat (ڪڻڪ / گندم) — Sukkur & Nawabshah Grain Mandi
+            </h3>
+            <p class="text-xs font-bold text-emerald-400">
+              ⏰ Optimal Window to Sell: <span id="mkt-best-window" class="text-white"></span>
+            </p>
+            <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <p id="mkt-ai-advice" class="text-sm leading-relaxed text-slate-200"></p>
+            </div>
+          </div>
+
+          <div class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/90 p-5 lg:col-span-5">
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300">
+                Enter Your Harvest Quantity (in 40kg Maunds / مڻ / من):
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="10000"
+                value="200"
+                oninput="updateMarketQuantity(this.value)"
+                class="mt-2 w-full rounded-xl border border-emerald-600/60 bg-slate-900 px-4 py-2.5 text-base font-extrabold text-white focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                <span class="text-[11px] text-slate-400">If Sold Today</span>
+                <p id="mkt-rev-today" class="mt-1 text-base font-bold text-slate-200">PKR 790,000</p>
+              </div>
+              <div class="rounded-xl border border-emerald-600/50 bg-emerald-950/40 p-3">
+                <span class="text-[11px] text-emerald-300">At AI Peak Window</span>
+                <p id="mkt-rev-peak" class="mt-1 text-base font-extrabold text-emerald-300">PKR 890,000</p>
+              </div>
+            </div>
+
+            <div class="rounded-xl bg-gradient-to-r from-emerald-500 to-amber-400 p-3 text-center text-slate-950 shadow-lg">
+              <span class="text-xs font-bold uppercase">Net Gain by Following AI Market Timing:</span>
+              <p id="mkt-extra-profit" class="text-lg font-black">+ PKR 100,000 Extra Profit</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 3: PROMINENT VOICE ASSISTANT COMMAND CENTER
+         ===================================================================== -->
+    <section id="voice-section" class="relative overflow-hidden rounded-3xl border border-emerald-800/50 bg-gradient-to-br from-emerald-950/50 via-slate-900 to-amber-950/25 p-6 shadow-2xl">
+      <div class="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+        <div class="flex flex-col items-center justify-center text-center lg:col-span-5">
+          <h2 id="ui-voice-title" class="mb-2 text-lg font-bold text-emerald-300">Sindhi / Urdu Voice Field Assistant</h2>
+          <p id="ui-voice-status" class="mb-6 max-w-xs text-xs text-slate-300">
+            Tap microphone & speak in Sindhi, Urdu, or English
+          </p>
+
+          <div id="mic-pulse-wrapper" class="relative flex items-center justify-center">
+            <button
+              id="mic-main-btn"
+              type="button"
+              onclick="toggleVoiceAssistant()"
+              aria-label="Toggle Voice Assistant"
+              class="relative z-10 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500 text-slate-950 shadow-xl hover:scale-105 hover:bg-emerald-400 transition-all duration-300"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="mt-6 flex h-7 items-end justify-center gap-1.5">
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all"></span>
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all" style="animation-delay: 80ms"></span>
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all" style="animation-delay: 160ms"></span>
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all" style="animation-delay: 240ms"></span>
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all" style="animation-delay: 320ms"></span>
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all" style="animation-delay: 400ms"></span>
+            <span class="eq-bar w-1.5 h-1.5 rounded-full bg-slate-700 transition-all" style="animation-delay: 480ms"></span>
+          </div>
+        </div>
+
+        <div class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/85 p-5 lg:col-span-7">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-400">✨</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                Sindh Agro-LLM Voice Output
+              </span>
+            </div>
+            <button
+              type="button"
+              onclick="speakCurrentAdvisory()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700/60 bg-emerald-950/60 px-3 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-900/60"
+            >
+              🔊 <span id="ui-play-audio">Listen in Voice</span>
+            </button>
+          </div>
+
+          <div class="rounded-xl border border-slate-800/90 bg-slate-900/70 p-3 text-sm text-slate-300">
+            <span class="block text-[11px] font-semibold uppercase text-slate-400">
+              Detected Farmer Voice Input:
+            </span>
+            <p id="ui-voice-transcript" class="mt-1 font-medium text-amber-200"></p>
+          </div>
+
+          <div class="rounded-xl border border-emerald-800/40 bg-emerald-950/30 p-4">
+            <p id="ui-voice-advisory" class="text-sm leading-relaxed text-slate-100"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 4: SEASONS & MULTI-CROP 5-STEP LIFECYCLE
+         (Seeding • Irrigation • Fertilizer • Harvesting • Thresher)
+         ===================================================================== -->
+    <section id="crops-lifecycle-section" class="space-y-5 pt-2">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <h2 class="text-2xl font-extrabold text-white">
+            Seasons & Complete Crop Operations (Seeding to Thresher)
+          </h2>
+          <p class="text-xs text-slate-400">
+            Filter by Sindh Agricultural Season (Rabi Winter, Kharif Summer/Monsoon, or Orchards) and select any crop
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold uppercase text-slate-400">Season:</span>
+          <button
+            id="season-btn-ALL"
+            onclick="setSeasonFilter('ALL')"
+            class="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-extrabold text-slate-950 shadow"
+          >
+            All Seasons (8 Crops)
+          </button>
+          <button
+            id="season-btn-Rabi"
+            onclick="setSeasonFilter('Rabi')"
+            class="rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:border-amber-500/50"
+          >
+            ❄️ Rabi (Nov–Apr)
+          </button>
+          <button
+            id="season-btn-Kharif"
+            onclick="setSeasonFilter('Kharif')"
+            class="rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:border-amber-500/50"
+          >
+            ☀️ Kharif (Apr–Nov)
+          </button>
+          <button
+            id="season-btn-Perennial"
+            onclick="setSeasonFilter('Perennial')"
+            class="rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:border-amber-500/50"
+          >
+            🌳 Orchards
+          </button>
+        </div>
+      </div>
+
+      <div id="crop-selector-buttons" class="flex flex-wrap gap-2"></div>
+
+      <div class="agri-card flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h3 id="active-crop-title" class="text-xl font-extrabold text-white"></h3>
+            <span id="active-crop-season-pill" class="rounded-full bg-emerald-500/20 px-3 py-0.5 text-xs font-bold text-emerald-300"></span>
+          </div>
+          <p id="active-crop-stage" class="mt-1 text-xs font-semibold text-amber-300"></p>
+        </div>
+        <div id="active-crop-varieties" class="rounded-xl border border-slate-800 bg-slate-950/70 px-3.5 py-2 text-xs text-slate-300"></div>
+      </div>
+
+      <div id="crop-lifecycle-steps-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 5: "CROP DOCTOR" VISION + PESTICIDE / INSECTICIDE + NEARBY DEALER LOCATOR
+         ===================================================================== -->
+    <section id="crop-doctor-section" class="pt-4">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🔬</span>
+            <h2 class="text-2xl font-bold tracking-tight text-white">
+              Crop Doctor AI Disease Tracker & Nearby Pesticide Dealer Locator
+            </h2>
+          </div>
+          <p class="mt-1 text-sm text-slate-400">
+            Upload a leaf photo to identify the exact disease, required pesticide/insecticide dosage, and verified local dealers with stock near your farm.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-medium text-slate-400">Disease Sample:</span>
+          <button
+            id="preset-btn-wheat_rust"
+            type="button"
+            onclick="switchVisionPreset('wheat_rust')"
+            class="rounded-xl border border-emerald-500 bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition"
+          >
+            Wheat Stripe Rust
+          </button>
+          <button
+            id="preset-btn-cotton_clcv"
+            type="button"
+            onclick="switchVisionPreset('cotton_clcv')"
+            class="rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-400 transition"
+          >
+            Cotton CLCuV + Whitefly
+          </button>
+          <button
+            id="preset-btn-rice_blight"
+            type="button"
+            onclick="switchVisionPreset('rice_blight')"
+            class="rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-400 transition"
+          >
+            Rice Blight + Stem Borer
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <!-- LEFT: Drag & Drop Leaf Specimen -->
+        <div class="agri-card flex flex-col justify-between rounded-3xl p-6 lg:col-span-5">
+          <div>
+            <h3 class="mb-3 text-sm font-bold uppercase tracking-wider text-emerald-400">
+              🍃 Upload Infected Leaf / Pest Photo
+            </h3>
+
+            <div
+              id="leaf-dropzone"
+              class="group relative flex min-h-[340px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/70 p-6 text-center transition-all hover:border-emerald-500/70"
+            >
+              <input id="leaf-file-input" type="file" accept="image/*" class="hidden" />
+
+              <img
+                id="leaf-preview-img"
+                alt="Uploaded Crop Specimen"
+                class="hidden mx-auto max-h-72 w-full rounded-xl object-cover shadow-lg"
+              />
+
+              <div
+                id="leaf-scan-overlay"
+                class="hidden absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-slate-950/80 backdrop-blur-sm"
+              >
+                <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-400 border-t-transparent"></div>
+                <span class="mt-3 text-xs font-semibold text-emerald-300">
+                  Matching Disease & Checking Local Dealer Inventory...
+                </span>
+              </div>
+
+              <div id="leaf-upload-placeholder" class="space-y-4">
+                <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-emerald-700/40 bg-emerald-950/60 text-3xl">
+                  📷
+                </div>
+                <div>
+                  <p class="text-base font-semibold text-white">
+                    Drag & drop infected leaf photo or <span class="text-emerald-400 underline">browse camera</span>
+                  </p>
+                  <p class="mt-1 text-xs text-slate-400">
+                    Supports JPG, PNG, HEIC • High-sunlight field calibration
+                  </p>
+                </div>
+                <div class="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-950/40 px-3 py-1 text-xs text-amber-300">
+                  <span id="diag-crop-name">Active Specimen: Wheat (Triticum aestivum)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between border-t border-slate-800 pt-4 text-xs text-slate-400">
+            <span id="leaf-file-label">Pre-loaded Tandojam Pathology Reference</span>
+            <button
+              type="button"
+              onclick="switchVisionPreset(state.presetDiagnosis)"
+              class="font-semibold text-emerald-400 hover:text-emerald-300"
+            >
+              ↻ Re-Scan Specimen
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Diagnosis + Exact Pesticide + Local Dealers -->
+        <div class="space-y-4 rounded-3xl border border-emerald-900/50 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/30 p-6 shadow-2xl lg:col-span-7">
+          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-300">
+                ✨ AI Pathology & Pesticide Prescription
+              </span>
+              <h3 id="diag-primary-disease" class="mt-2 text-2xl font-extrabold text-white"></h3>
+              <p id="diag-local-name" class="mt-0.5 text-sm font-medium text-amber-300"></p>
+            </div>
+
+            <div class="min-w-[150px] rounded-2xl border border-slate-800 bg-slate-950/80 p-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-slate-400">AI Confidence</span>
+                <span id="diag-confidence-text" class="font-bold text-emerald-400">95%</span>
+              </div>
+              <div class="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div
+                  id="diag-confidence-bar"
+                  class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-500"
+                  style="width: 95%"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1. Visual Observation -->
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5">
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+              🔍 1. Visual Observation & Lesion Morphology
+            </div>
+            <p id="diag-observation" class="mt-1.5 text-xs leading-relaxed text-slate-200"></p>
+            <div class="mt-2 inline-flex items-center gap-2 rounded-lg bg-red-950/60 px-2.5 py-1 text-[11px] font-medium text-red-300">
+              <span>🚨</span>
+              <span id="diag-severity"></span>
+            </div>
+          </div>
+
+          <!-- 2. Exact Pesticide / Insecticide Required -->
+          <div class="rounded-2xl border-2 border-amber-500/50 bg-amber-950/25 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-300">
+                🧴 2. Required Pesticide / Insecticide / Fungicide
+              </span>
+              <span id="diag-pest-price" class="rounded-full bg-amber-500 px-3 py-0.5 text-xs font-black text-slate-950">
+                PKR 1,850 / Acre Pack
+              </span>
+            </div>
+            <h4 id="diag-pest-chemical" class="mt-1.5 text-base font-extrabold text-white"></h4>
+            <p id="diag-pest-brands" class="mt-0.5 text-xs font-semibold text-emerald-300"></p>
+            <div class="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-amber-800/40 pt-2 text-xs text-slate-200">
+              <span id="diag-pest-type" class="text-amber-200"></span>
+              <span id="diag-pest-dosage" class="font-bold text-white"></span>
+            </div>
+          </div>
+
+          <!-- 3. Verified Nearby Local Agro-Dealers with Stock -->
+          <div class="space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+                📍 3. Where to Buy Nearby (Verified Sindh Agro-Dealers)
+              </span>
+              <span id="diag-dealer-district-label" class="text-xs font-semibold text-amber-300"></span>
+            </div>
+            <div id="diag-nearby-dealers" class="space-y-2"></div>
+          </div>
+
+          <!-- 4. Immediate Action Plan -->
+          <div class="space-y-2 pt-1">
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+              🧪 4. Field Spraying Protocol
+            </div>
+            <div id="diag-action-plan" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 6: ILLITERATE-FRIENDLY VISUAL & VOICE LABOUR REGISTRATION
+         & FARM LABOUR FINDER (MongoDB / Firebase / SQLite Persistent DB)
+         ===================================================================== -->
+    <section id="labour-portal-section" class="space-y-6 pt-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-950 text-2xl">
+            👷
+          </div>
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">
+              Sindh Kisan Mazdoor Portal • Farm Labour Registration & Finder
+            </h2>
+            <p class="text-xs text-slate-400">
+              Visual Icon & Voice-Assisted Registration for Illiterate Workers + Live Searchable Farm Labour Database
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onclick="speakLabourGuide()"
+            class="rounded-xl bg-amber-500 px-4 py-2 text-xs font-extrabold text-slate-950 shadow hover:bg-amber-400"
+          >
+            🔊 Listen Voice Instructions (آواز ۾ ٻڌو / سنیں)
+          </button>
+          <span
+            id="db-engine-badge"
+            class="rounded-full border border-emerald-500/40 bg-emerald-950/70 px-3 py-1 text-[11px] font-bold text-emerald-300"
+          >
+            Database: SQLite3 + MongoDB/Firebase Ready
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <!-- LEFT: Illiterate-Friendly Visual & Voice Labour Registration Form -->
+        <form
+          onsubmit="submitLabourRegistration(event)"
+          class="agri-card space-y-5 rounded-3xl p-6 shadow-xl lg:col-span-5"
+        >
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <span class="text-sm font-extrabold uppercase tracking-wider text-emerald-400">
+              ✋ Register as Farm Labourer (مزدور رجسٽريشن)
+            </span>
+            <span class="text-xs text-amber-300">Easy Visual + Mic Input</span>
+          </div>
+
+          <!-- Step A: Big Picture Skill Buttons (Zero Reading Required) -->
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300 mb-2">
+              1. Tap Pictures to Select Your Farm Skills (اپنا کام منتخب کریں):
+            </label>
+            <div id="labour-visual-skill-selector" class="grid grid-cols-2 gap-2.5 sm:grid-cols-3"></div>
+          </div>
+
+          <!-- Step B: Name with Mic Input -->
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300">
+              2. Full Name (نالو / نام) — Tap 🎙️ to Speak:
+            </label>
+            <div class="mt-1.5 flex gap-2">
+              <input
+                id="lab-name-input"
+                type="text"
+                required
+                placeholder="e.g., Allah Dino Mallah"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onclick="voiceFillField('lab-name-input', 'Ghulam Rasool Solangi')"
+                title="Speak Your Name"
+                class="shrink-0 rounded-xl border border-emerald-500/50 bg-emerald-950/60 px-3.5 py-2.5 text-sm font-bold text-emerald-300 hover:bg-emerald-900"
+              >
+                🎙️
+              </button>
+            </div>
+          </div>
+
+          <!-- Step C: CNIC & Phone Number -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300">
+                3. CNIC Card Number (شناختی کارڈ):
+              </label>
+              <input
+                id="lab-cnic-input"
+                type="text"
+                required
+                placeholder="45504-1234567-1"
+                oninput="formatLabourCnic(this)"
+                class="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 font-mono text-sm text-emerald-300 focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300">
+                4. Mobile / Phone (موبائل نمبر):
+              </label>
+              <input
+                id="lab-phone-input"
+                type="text"
+                required
+                placeholder="0300-1234567"
+                class="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 font-mono text-sm text-white focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Step D: District & Daily Wage -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300">
+                5. Sindh District (ضلعو / ضلع):
+              </label>
+              <select
+                id="lab-district-input"
+                class="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="Sukkur">Sukkur</option>
+                <option value="Larkana">Larkana</option>
+                <option value="Sanghar">Sanghar</option>
+                <option value="Mirpurkhas">Mirpurkhas</option>
+                <option value="Badin">Badin</option>
+                <option value="Hyderabad">Hyderabad</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-300">
+                6. Daily Rate (PKR / دیہاڑی):
+              </label>
+              <input
+                id="lab-wage-input"
+                type="number"
+                min="500"
+                max="10000"
+                value="1500"
+                class="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm font-bold text-amber-300 focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Step E: Village & Address with Voice Mic -->
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-300">
+              7. Village / Address (ڳوٺ ۽ پتو / گاؤں کا پتہ) — Tap 🎙️ to Speak:
+            </label>
+            <div class="mt-1.5 flex gap-2">
+              <input
+                id="lab-address-input"
+                type="text"
+                required
+                placeholder="e.g., Village Arain, Near Rohri Canal Regulator"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onclick="voiceFillField('lab-address-input', 'Village Saeedabad, Near Rohri Canal Bridge, Taluka Rohri')"
+                title="Speak Your Village Address"
+                class="shrink-0 rounded-xl border border-emerald-500/50 bg-emerald-950/60 px-3.5 py-2.5 text-sm font-bold text-emerald-300 hover:bg-emerald-900"
+              >
+                🎙️
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full rounded-2xl bg-emerald-500 py-3.5 text-base font-black text-slate-950 shadow-xl shadow-emerald-900/50 hover:bg-emerald-400 transition"
+          >
+            ✅ Register Labour Profile to Database (رجسٽر ڪريو)
+          </button>
+
+          <div
+            id="labour-save-toast"
+            class="hidden rounded-xl border border-emerald-500 bg-emerald-950/80 p-3 text-center text-xs font-bold text-emerald-300"
+          >
+            🎉 Labour Profile Permanently Saved to Database & Published to Directory!
+          </div>
+        </form>
+
+        <!-- RIGHT: Find Farm Labourers Directory (Search by District & Skill) -->
+        <div class="space-y-4 lg:col-span-7">
+          <div class="agri-card rounded-3xl p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div>
+                <h3 class="text-lg font-extrabold text-white">
+                  🔍 Find Verified Farm Labourers for Your Land
+                </h3>
+                <p class="text-xs text-slate-400">
+                  Filter by Sindh District & Work Type — Call, WhatsApp, or Export Database
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span
+                  id="labour-count-badge"
+                  class="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-extrabold text-emerald-300"
+                >
+                  6 Verified Workers Available
+                </span>
+                <button
+                  type="button"
+                  onclick="exportLabourDatabaseCSV()"
+                  class="rounded-xl border border-emerald-500/50 bg-emerald-950/60 px-3 py-1 text-xs font-bold text-emerald-300 hover:bg-emerald-900"
+                >
+                  📥 Download Excel / CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="block text-[11px] font-bold uppercase text-slate-400">
+                  Filter by Sindh District:
+                </label>
+                <select
+                  onchange="state.labourFilterDistrict = this.value; renderLabourPortalUI();"
+                  class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                >
+                  <option value="ALL">All Sindh Districts</option>
+                  <option value="Sukkur">Sukkur</option>
+                  <option value="Larkana">Larkana</option>
+                  <option value="Sanghar">Sanghar</option>
+                  <option value="Mirpurkhas">Mirpurkhas</option>
+                  <option value="Badin">Badin</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold uppercase text-slate-400">
+                  Filter by Farm Skill:
+                </label>
+                <select
+                  onchange="state.labourFilterSkill = this.value; renderLabourPortalUI();"
+                  class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                >
+                  <option value="ALL">All Farm Skills (کٹائی / تھریشر / ٹریکٹر)</option>
+                  <option value="harvesting">🌾 Harvesting (لابارو / کٹائی)</option>
+                  <option value="thresher">⚙️ Thresher Operator (ٿريشر)</option>
+                  <option value="tractor">🚜 Tractor Driver (ٽريڪٽر)</option>
+                  <option value="seeding">🌱 Seeding & Rice Transplanting (رونبو)</option>
+                  <option value="spray">🧪 Sprayman (اسپري ڪندڙ)</option>
+                  <option value="canal">💧 Canal / Khal Digging (واهه صفائي)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Live Labour Directory Cards -->
+            <div id="labour-directory-list" class="grid grid-cols-1 gap-3 max-h-[600px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 7: GOVERNMENT OF SINDH REGISTRATION PORTAL
+         ===================================================================== -->
+    <section id="gov-portal-section" class="pt-6">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-600/40 bg-emerald-950/80 text-2xl">
+            🏛️
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Government of Sindh • Agriculture Portal</h2>
+            <p class="text-xs text-slate-400">
+              Integrated with Benazir Hari Card, SIDA Canal Command & Sindh Solar Subsidy Registry
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="gov-tab-1"
+            type="button"
+            onclick="setGovStep(1)"
+            class="flex items-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition"
+          >
+            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-[11px] text-white">1</span>
+            Identity & CNIC
+          </button>
+          <button
+            id="gov-tab-2"
+            type="button"
+            onclick="setGovStep(2)"
+            class="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-400 transition"
+          >
+            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-[11px] text-white">2</span>
+            Land & Water
+          </button>
+          <button
+            id="gov-tab-3"
+            type="button"
+            onclick="setGovStep(3)"
+            class="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-400 transition"
+          >
+            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-[11px] text-white">3</span>
+            Subsidy Needs
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <form
+          onsubmit="submitGovRegistration(event)"
+          class="agri-card rounded-3xl p-6 shadow-xl lg:col-span-7"
+        >
+          <!-- STEP 1 -->
+          <div id="gov-step-1" class="space-y-5">
+            <div class="text-sm font-bold uppercase tracking-wider text-emerald-400">
+              👤 Step 1: Farmer Identity & NADRA CNIC Verification
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300">
+                Farmer Full Name (As per CNIC / پاس بڪ)
+              </label>
+              <input
+                id="gov-name-input"
+                type="text"
+                required
+                value="Ghulam Mustafa Bhutto"
+                oninput="updateGovEligibilityUI()"
+                class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300">
+                13-Digit NADRA CNIC Number (قومي سڃاڻپ ڪارڊ)
+              </label>
+              <input
+                id="gov-cnic-input"
+                type="text"
+                required
+                value="45504-7823419-3"
+                oninput="formatCnicInput(this)"
+                class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm text-emerald-300 focus:border-emerald-500 focus:outline-none"
+              />
+              <span id="gov-cnic-hint" class="mt-1.5 block text-xs text-slate-400">
+                ✓ Valid Sindh Division CNIC Format (4xxxx)
+              </span>
+            </div>
+
+            <div class="flex justify-end pt-4">
+              <button
+                type="button"
+                onclick="setGovStep(2)"
+                class="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-400"
+              >
+                Next: Land & Water Source →
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div id="gov-step-2" class="hidden space-y-5">
+            <div class="text-sm font-bold uppercase tracking-wider text-emerald-400">
+              📍 Step 2: Sindh District, Taluka & Irrigation Source
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label class="block text-xs font-semibold uppercase text-slate-300">
+                  Sindh District (ضلعو)
+                </label>
+                <select
+                  onchange="handleDistrictSelect(this.value)"
+                  class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="Sukkur">Sukkur</option>
+                  <option value="Larkana">Larkana</option>
+                  <option value="Sanghar">Sanghar</option>
+                  <option value="Badin">Badin</option>
+                  <option value="Mirpurkhas">Mirpurkhas</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase text-slate-300">
+                  Taluka / Tehsil (تعلقو)
+                </label>
+                <select
+                  id="gov-taluka-select"
+                  onchange="state.govData.taluka = this.value; updateGovEligibilityUI();"
+                  class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="Rohri">Rohri</option>
+                  <option value="Salehpat">Salehpat</option>
+                  <option value="Pano Akil">Pano Akil</option>
+                  <option value="New Sukkur">New Sukkur</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300">
+                Cultivated Farm Acreage (ايڪڙ — Form-VII / Mukhtiarkar Record)
+              </label>
+              <input
+                id="gov-acreage-input"
+                type="number"
+                min="1"
+                max="500"
+                value="12"
+                oninput="updateGovEligibilityUI()"
+                class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              />
+              <span class="mt-1 block text-xs text-amber-300">
+                Holdings ≤ 25 Acres qualify for 100% Priority Benazir Hari Card Grant.
+              </span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-300">
+                Main Irrigation Water Source
+              </label>
+              <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  id="water-btn-canal"
+                  type="button"
+                  onclick="selectWaterSource('canal')"
+                  class="flex flex-col items-start rounded-2xl border border-emerald-500 bg-emerald-950/50 p-4 text-left text-white transition"
+                >
+                  <div class="font-bold text-emerald-300">💧 Canal Command (واهه / ڪينال)</div>
+                  <span class="mt-1 text-xs text-slate-400">Sukkur / Kotri / Guddu Barrage Warabandi</span>
+                </button>
+
+                <button
+                  id="water-btn-tubewell"
+                  type="button"
+                  onclick="selectWaterSource('tubewell')"
+                  class="flex flex-col items-start rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left text-slate-400 hover:border-slate-700 transition"
+                >
+                  <div class="font-bold text-emerald-300">⚙️ Tube-Well (ٽيوب ويل / بورنگ)</div>
+                  <span class="mt-1 text-xs text-slate-400">Sub-surface Groundwater / Diesel or Solar Lift</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex justify-between pt-4">
+              <button
+                type="button"
+                onclick="setGovStep(1)"
+                class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onclick="setGovStep(3)"
+                class="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-400"
+              >
+                Next: Resource Checklist →
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div id="gov-step-3" class="hidden space-y-5">
+            <div class="text-sm font-bold uppercase tracking-wider text-emerald-400">
+              ☑️ Step 3: Required Sindh Government Resource Assistance
+            </div>
+
+            <div class="space-y-3">
+              <div
+                id="res-card-canalMaintenance"
+                onclick="toggleGovResource('canalMaintenance')"
+                class="flex cursor-pointer items-start gap-3.5 rounded-2xl border border-emerald-500 bg-emerald-950/40 p-4 transition"
+              >
+                <span id="res-check-canalMaintenance" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500 text-xs font-bold text-slate-950">✓</span>
+                <div>
+                  <p class="text-sm font-bold text-white">Canal Infrastructure Maintenance</p>
+                  <p class="mt-0.5 text-xs text-slate-400">
+                    Watercourse lining (پڪو خال), desilting & tail-end module repair via SIDA
+                  </p>
+                </div>
+              </div>
+
+              <div
+                id="res-card-solarPumpSubsidy"
+                onclick="toggleGovResource('solarPumpSubsidy')"
+                class="flex cursor-pointer items-start gap-3.5 rounded-2xl border border-emerald-500 bg-emerald-950/40 p-4 transition"
+              >
+                <span id="res-check-solarPumpSubsidy" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500 text-xs font-bold text-slate-950">✓</span>
+                <div>
+                  <p class="text-sm font-bold text-white">Solar Water Pump Subsidies</p>
+                  <p class="mt-0.5 text-xs text-slate-400">
+                    80% Sindh Gov subsidy on 5HP–15HP solar submersible & surface pumps
+                  </p>
+                </div>
+              </div>
+
+              <div
+                id="res-card-tractorRental"
+                onclick="toggleGovResource('tractorRental')"
+                class="flex cursor-pointer items-start gap-3.5 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 hover:border-slate-700 transition"
+              >
+                <span id="res-check-tractorRental" class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-600 text-xs"></span>
+                <div>
+                  <p class="text-sm font-bold text-white">Tractor Rentals & Laser Land Leveler</p>
+                  <p class="mt-0.5 text-xs text-slate-400">
+                    Subsidized hourly booking via Sindh Agriculture Engineering Wing
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between pt-4">
+              <button
+                type="button"
+                onclick="setGovStep(2)"
+                class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                class="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-emerald-900/60 hover:bg-emerald-400"
+              >
+                🛡️ Submit to Sindh Gov Portal
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- RIGHT: Dynamic Government Integration Status Card -->
+        <div class="flex flex-col justify-between rounded-3xl border border-emerald-800/60 bg-gradient-to-br from-emerald-950/50 via-slate-900 to-amber-950/30 p-6 shadow-2xl lg:col-span-5">
+          <div class="space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">
+                🏛️ Government Integration Status
+              </span>
+              <span class="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-950 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+                <span class="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>
+                Live NADRA / LARMIS Link
+              </span>
+            </div>
+
+            <div
+              id="gov-status-card"
+              class="rounded-2xl border border-emerald-500/70 bg-emerald-950/60 p-5 shadow-lg transition-all"
+            >
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Real-Time Assessment
+              </span>
+              <h3 id="gov-status-title" class="mt-0.5 text-lg font-extrabold text-emerald-300">
+                Eligible for Sindh Gov Subsidy
+              </h3>
+              <p id="gov-status-desc" class="mt-3 text-xs leading-relaxed text-slate-300"></p>
+            </div>
+
+            <div class="space-y-2.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Matched Sindh Agriculture Programs:
+              </span>
+              <div id="gov-matched-schemes" class="space-y-2"></div>
+            </div>
+
+            <div
+              id="gov-receipt-box"
+              class="hidden rounded-2xl border border-amber-500/50 bg-amber-950/40 p-4"
+            >
+              <p class="text-xs font-bold uppercase text-amber-300">
+                Official Dispatch Token Generated
+              </p>
+              <p id="gov-receipt-token" class="mt-1 font-mono text-sm font-bold text-white"></p>
+              <p id="gov-receipt-sub" class="mt-1 text-xs text-slate-300"></p>
+            </div>
+          </div>
+
+          <div class="mt-6 border-t border-slate-800 pt-3 text-[11px] text-slate-400">
+            Data encrypted & routed via Sindh Information Technology Board (SITB) Agri-Cloud Gateway.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Main Interactive Script -->
+  <script src="script.js"></script>
+</body>
+</html>

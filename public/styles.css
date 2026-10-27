@@ -1,0 +1,197 @@
+/* ==========================================================================
+   AgriSync AI — Dual Theme (Dark Mode & High-Sunlight Light Mode) + Map UI
+   ========================================================================== */
+
+:root {
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-card: rgba(15, 23, 42, 0.82);
+  --bg-inset: rgba(2, 6, 23, 0.78);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border-subtle: rgba(30, 41, 59, 0.9);
+  --emerald-accent: #10b981;
+  --amber-accent: #f59e0b;
+}
+
+html.light {
+  --bg-primary: #f8faf5;
+  --bg-secondary: #eef5ec;
+  --bg-card: rgba(255, 255, 255, 0.94);
+  --bg-inset: #f1f5f0;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --border-subtle: #cbd5e1;
+  --emerald-accent: #059669;
+  --amber-accent: #d97706;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: "Inter", "Segoe UI", "Noto Nastaliq Urdu", system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+html.dark body {
+  background-image: 
+    radial-gradient(at 12% 10%, rgba(16, 185, 129, 0.12) 0px, transparent 45%),
+    radial-gradient(at 88% 35%, rgba(217, 119, 6, 0.09) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, rgba(6, 78, 59, 0.16) 0px, transparent 55%);
+}
+
+html.light body {
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(16, 185, 129, 0.1) 0px, transparent 45%),
+    radial-gradient(at 90% 30%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
+}
+
+/* Adaptive Theme Cards & Surfaces */
+.agri-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.25s ease, box-shadow 0.2s ease;
+}
+
+.agri-card:hover {
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+/* Light Mode Overrides for Tailwind Dark Utility Classes */
+html.light .bg-slate-950,
+html.light .bg-slate-950\/90,
+html.light .bg-slate-950\/85,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/75,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/60 {
+  background-color: var(--bg-inset) !important;
+}
+
+html.light header.bg-slate-950\/90 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: #cbd5e1 !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/60 {
+  background-color: #ffffff !important;
+}
+
+html.light .text-white,
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-300,
+html.light .text-slate-400 {
+  color: #334155 !important;
+}
+
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+html.light .text-amber-200,
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #b45309 !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-800\/90,
+html.light .border-slate-800\/80,
+html.light .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+html.light .from-emerald-950\/50,
+html.light .from-slate-900 {
+  --tw-gradient-from: #ecfdf5 !important;
+  --tw-gradient-Via: #ffffff !important;
+  --tw-gradient-to: #fef3c7 !important;
+}
+
+/* Pulse Ring Animations for Voice Assistant Mic */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.85;
+  }
+  70% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+@keyframes equalizer-bounce {
+  0%, 100% {
+    height: 6px;
+  }
+  50% {
+    height: 26px;
+  }
+}
+
+.mic-pulse-ring::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.35);
+  animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  z-index: 0;
+}
+
+.mic-pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: -26px;
+  border-radius: 9999px;
+  border: 2px solid rgba(52, 211, 153, 0.45);
+  animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite 0.35s;
+  z-index: 0;
+}
+
+.eq-bar-active {
+  animation: equalizer-bounce 0.65s ease-in-out infinite;
+  background-color: #10b981 !important;
+}
+
+.dropzone-active {
+  border-color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Map Container Styling */
+#sindh-land-map {
+  height: 360px;
+  width: 100%;
+  border-radius: 1rem;
+  z-index: 10;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}

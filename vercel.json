@@ -1,9 +1,20 @@
 {
   "version": 2,
-  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/styles.css",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/script.js",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/",
       "destination": "/api/index.py"
     }
   ]
