@@ -121,7 +121,22 @@ def get_mongo_collection():
     return _MONGO_COLLECTION
 
 
+try:
+    from api.static_assets import INDEX_HTML, STYLES_CSS, SCRIPT_JS
+except Exception:
+    try:
+        from static_assets import INDEX_HTML, STYLES_CSS, SCRIPT_JS
+    except Exception:
+        INDEX_HTML, STYLES_CSS, SCRIPT_JS = b"", b"", b""
+
+
 def read_static_asset(filename: str) -> bytes:
+    if filename == "index.html" and INDEX_HTML:
+        return INDEX_HTML
+    if filename == "styles.css" and STYLES_CSS:
+        return STYLES_CSS
+    if filename == "script.js" and SCRIPT_JS:
+        return SCRIPT_JS
     for d in [API_DIR, ROOT_DIR, ROOT_DIR / "public"]:
         p = d / filename
         if p.exists():
