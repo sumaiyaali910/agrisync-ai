@@ -1,9 +1,9 @@
 """
-AgriSync AI — Production Multi-Engine Database Layer (database.py)
+AgriSync AI — Serverless-Safe Multi-Engine Database Layer (database.py)
 Supports:
 1. MongoDB Atlas (via MONGODB_URI environment variable)
-2. Firebase Realtime Database / Firestore REST API (via FIREBASE_DB_URL)
-3. Serverless-safe SQLite3 + In-Memory Fallback (uses /tmp on Vercel Serverless)
+2. Firebase Realtime Database REST API (via FIREBASE_DB_URL)
+3. Serverless-safe /tmp SQLite3 + In-Memory Store (Never crashes on Vercel read-only filesystem)
 """
 
 import os
@@ -11,14 +11,12 @@ import json
 import sqlite3
 import tempfile
 import urllib.request
-from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = BASE_DIR / ".env"
 
-# Load local .env if present
 if ENV_FILE.exists():
     try:
         for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
@@ -29,20 +27,13 @@ if ENV_FILE.exists():
     except Exception:
         pass
 
-# Choose writable SQLite path (/tmp on Vercel Serverless, local folder on PC/Render)
-if os.getenv("VERCEL") or not os.access(BASE_DIR, os.W_OK):
-    DB_FILE = Path(tempfile.gettempdir()) / "agrisync_production.db"
-else:
-    DB_FILE = BASE_DIR / "agrisync_production.db"
+DB_FILE = Path(tempfile.gettempdir()) / "agrisync_production.db"
 
 try:
     from pymongo import MongoClient
     PYMONGO_AVAILABLE = True
-except ImportError:
+except Exception:
     PYMONGO_AVAILABLE = False
-
-MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
-FIREBASE_DB_URL = os.getenv("FIREBASE_DB_URL", "").strip()
 
 DEFAULT_SINDH_LABOURERS = [
     {
@@ -130,31 +121,34 @@ class AgriSyncDatabase:
     def __init__(self):
         self.mongo_client = None
         self.mongo_db = None
-        self.memory_store: List[Dict[str, Any]] = list(DEFAULT_SINDH_LABOURERS)
+        self._mongo_checked = False
+        self.memory_store: List[Dict[str, Any]] = [dict(x) for x in DEFAULT_SINDH_LABOURERS]
         self.storage_engine = "Cloud & Local Persistent DB"
+        self._init_sqlite()
 
-        if PYMONGO_AVAILABLE and MONGODB_URI:
+    def _get_mongo_db(self):
+        if self._mongo_checked:
+            return self.mongo_db
+        self._mongo_checked = True
+        uri = os.getenv("MONGODB_URI", "").strip()
+        if PYMONGO_AVAILABLE and uri and "<" not in uri:
             try:
-                self.mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=3500)
-                self.mongo_client.server_info()
+                self.mongo_client = MongoClient(uri, serverSelectionTimeoutMS=2500)
+                self.mongo_client.admin.command("ping")
                 self.mongo_db = self.mongo_client["agrisync_sindh"]
                 self.storage_engine = "MongoDB Atlas Cloud"
-                # Seed default labourers into MongoDB if collection is empty
                 if self.mongo_db.labourers.count_documents({}) == 0:
                     self.mongo_db.labourers.insert_many(
                         [dict(item) for item in DEFAULT_SINDH_LABOURERS]
                     )
             except Exception as exc:
-                print(f"MongoDB fallback notice: {exc}")
-
-        if FIREBASE_DB_URL and self.mongo_db is None:
-            self.storage_engine = "Firebase Realtime DB"
-
-        self._init_sqlite()
+                print(f"MongoDB connection notice: {exc}")
+                self.mongo_db = None
+        return self.mongo_db
 
     def _init_sqlite(self):
         try:
-            conn = sqlite3.connect(DB_FILE)
+            conn = sqlite3.connect(str(DB_FILE))
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -174,8 +168,7 @@ class AgriSyncDatabase:
                 """
             )
             cursor.execute("SELECT COUNT(*) FROM labourers")
-            count = cursor.fetchone()[0]
-            if count == 0:
+            if cursor.fetchone()[0] == 0:
                 for item in DEFAULT_SINDH_LABOURERS:
                     cursor.execute(
                         """
@@ -199,25 +192,26 @@ class AgriSyncDatabase:
                     )
             conn.commit()
             conn.close()
-        except Exception as exc:
-            print(f"SQLite init notice (using memory/cloud store): {exc}")
+        except Exception:
+            pass
 
     def get_all_labourers(self, district: str = "ALL", skill: str = "ALL") -> List[Dict[str, Any]]:
-        if self.mongo_db is not None:
+        mdb = self._get_mongo_db()
+        if mdb is not None:
             try:
                 query: Dict[str, Any] = {}
                 if district and district != "ALL":
                     query["district"] = district
                 if skill and skill != "ALL":
                     query["skills"] = skill
-                docs = list(self.mongo_db.labourers.find(query, {"_id": 0}).sort("createdAt", -1))
+                docs = list(mdb.labourers.find(query, {"_id": 0}).sort("createdAt", -1))
                 if docs:
                     return docs
-            except Exception as exc:
-                print(f"MongoDB read fallback: {exc}")
+            except Exception:
+                pass
 
         try:
-            conn = sqlite3.connect(DB_FILE)
+            conn = sqlite3.connect(str(DB_FILE))
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -259,7 +253,7 @@ class AgriSyncDatabase:
         self.memory_store.insert(0, dict(record))
 
         try:
-            conn = sqlite3.connect(DB_FILE)
+            conn = sqlite3.connect(str(DB_FILE))
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -283,18 +277,20 @@ class AgriSyncDatabase:
             )
             conn.commit()
             conn.close()
-        except Exception as exc:
-            print(f"SQLite write notice: {exc}")
+        except Exception:
+            pass
 
-        if self.mongo_db is not None:
+        mdb = self._get_mongo_db()
+        if mdb is not None:
             try:
-                self.mongo_db.labourers.insert_one(dict(record))
-            except Exception as exc:
-                print(f"MongoDB insert warning: {exc}")
+                mdb.labourers.insert_one(dict(record))
+            except Exception:
+                pass
 
-        if FIREBASE_DB_URL:
+        fb_url = os.getenv("FIREBASE_DB_URL", "").strip()
+        if fb_url:
             try:
-                fb_endpoint = f"{FIREBASE_DB_URL.rstrip('/')}/labourers/{record['id']}.json"
+                fb_endpoint = f"{fb_url.rstrip('/')}/labourers/{record['id']}.json"
                 req = urllib.request.Request(
                     fb_endpoint,
                     data=json.dumps(record).encode("utf-8"),
@@ -302,8 +298,8 @@ class AgriSyncDatabase:
                     method="PUT",
                 )
                 urllib.request.urlopen(req, timeout=4)
-            except Exception as exc:
-                print(f"Firebase sync warning: {exc}")
+            except Exception:
+                pass
 
         return record
 
