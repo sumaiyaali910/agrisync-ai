@@ -1,0 +1,13 @@
+# Environment variables & secrets (Never push your MongoDB password to GitHub)
+.env
+backend/.env
+
+# Python cache & local SQLite DB
+__pycache__/
+*.py[cod]
+backend/agrisync_production.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
