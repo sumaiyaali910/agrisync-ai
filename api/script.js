@@ -1614,8 +1614,11 @@ const UI_TEXT = {
     navMarket: "Mandi Price AI",
     navCrops: "Crops & Thresher",
     navDoctor: "Disease & Dealers",
+    navVoice: "AI Assistant",
     navLabour: "Labour Portal",
     navGov: "Gov Subsidy",
+    labSubtabRegister: "✋ Register Worker",
+    labSubtabFind: "🔍 Find Workers",
     themeLight: "Light Mode (Field Sun)",
     themeDark: "Dark Mode (Night)",
     mapHeader: "Live GPS Land Tracker & Real-Time Weather Radar",
@@ -1823,8 +1826,11 @@ const UI_TEXT = {
     navMarket: "منڈی ریٹ اے آئی",
     navCrops: "فصلیں اور تھریشر",
     navDoctor: "بیماری اور ڈیلرز",
+    navVoice: "اے آئی مددگار",
     navLabour: "مزدور پورٹل",
     navGov: "سرکاری سبسڈی",
+    labSubtabRegister: "✋ مزدور رجسٹریشن",
+    labSubtabFind: "🔍 مزدور تلاش کریں",
     themeLight: "لائٹ موڈ (تیز دھوپ)",
     themeDark: "ڈارک موڈ (رات)",
     mapHeader: "لائیو جی پی ایس زمین ٹریکر اور موسمی ریڈار الرٹ",
@@ -2032,8 +2038,11 @@ const UI_TEXT = {
     navMarket: "منڊي اگهه اي آءِ",
     navCrops: "فصل ۽ ٿريشر",
     navDoctor: "بيماري ۽ ڊيلر",
+    navVoice: "اي آءِ مددگار",
     navLabour: "مزدور پورٽل",
     navGov: "سرڪاري سبسڊي",
+    labSubtabRegister: "✋ مزدور رجسٽريشن",
+    labSubtabFind: "🔍 مزدور ڳوليو",
     themeLight: "لائيٽ موڊ (تيز اس)",
     themeDark: "ڊارڪ موڊ (رات)",
     mapHeader: "لائيو جي پي ايس زمين ٽريڪر ۽ موسمي برسات الرٽ",
@@ -2237,6 +2246,8 @@ const UI_TEXT = {
 let state = {
   theme: "dark",
   lang: "en",
+  activeTab: "map",
+  labourSubTab: "register",
   seasonFilter: "ALL",
   crop: "wheat",
   marketCrop: "wheat",
@@ -2800,6 +2811,7 @@ function renderDashboard() {
   setText("nav-market", ui.navMarket);
   setText("nav-crops", ui.navCrops);
   setText("nav-doctor", ui.navDoctor);
+  setText("nav-voice", ui.navVoice);
   setText("nav-labour", ui.navLabour);
   setText("nav-gov", ui.navGov);
 
@@ -3514,6 +3526,8 @@ function renderLabourPortalUI() {
 
   setText("ui-lab-header", ui.labHeader);
   setText("ui-lab-sub", ui.labSub);
+  setText("lab-subtab-register", ui.labSubtabRegister);
+  setText("lab-subtab-find", ui.labSubtabFind);
   setText("ui-lab-voice-btn", ui.labVoiceBtn);
   setText("db-engine-badge", `${ui.labDbPrefix} ${locStr(state.storageEngineName)}`);
   setText("ui-lab-form-title", ui.labFormTitle);
@@ -4207,6 +4221,57 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
+const MAIN_TAB_SECTIONS = {
+  map: "land-weather-section",
+  doctor: "crop-doctor-section",
+  voice: "voice-section",
+  crops: "crops-lifecycle-section",
+  market: "marketplace-section",
+  labour: "labour-portal-section",
+  gov: "gov-portal-section",
+};
+
+function switchMainTab(tabKey) {
+  if (!MAIN_TAB_SECTIONS[tabKey]) tabKey = "map";
+  state.activeTab = tabKey;
+
+  Object.entries(MAIN_TAB_SECTIONS).forEach(([key, secId]) => {
+    const secEl = document.getElementById(secId);
+    if (secEl) secEl.classList.toggle("hidden", key !== tabKey);
+
+    const btnEl = document.getElementById(`main-tab-${key}`);
+    if (btnEl) {
+      const extraSpan = key === "gov" ? " col-span-2 sm:col-span-1" : "";
+      btnEl.className =
+        key === tabKey
+          ? `flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-extrabold text-slate-950 shadow-md transition-all${extraSpan}`
+          : `flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all${extraSpan}`;
+    }
+  });
+
+  if (tabKey === "map" && leafletMap) {
+    setTimeout(() => leafletMap.invalidateSize(), 120);
+  }
+}
+
+function switchLabourSubTab(subKey) {
+  state.labourSubTab = subKey;
+  const regPanel = document.getElementById("labour-register-panel");
+  const findPanel = document.getElementById("labour-find-panel");
+  if (regPanel) regPanel.classList.toggle("hidden", subKey !== "register");
+  if (findPanel) findPanel.classList.toggle("hidden", subKey !== "find");
+
+  ["register", "find"].forEach((k) => {
+    const btn = document.getElementById(`lab-subtab-${k}`);
+    if (btn) {
+      btn.className =
+        k === subKey
+          ? "rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-slate-950 transition"
+          : "rounded-lg px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition";
+    }
+  });
+}
+
 // Initialize Everything on DOM Ready
 document.addEventListener("DOMContentLoaded", () => {
   initSindhLandMap();
@@ -4218,6 +4283,8 @@ document.addEventListener("DOMContentLoaded", () => {
   renderActiveVisionDiagnosis();
   loadLabourDatabase();
   renderGovPortalTranslations();
+  switchMainTab(state.activeTab);
+  switchLabourSubTab(state.labourSubTab);
 
   const dropzone = document.getElementById("leaf-dropzone");
   const fileInput = document.getElementById("leaf-file-input");

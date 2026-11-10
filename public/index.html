@@ -45,17 +45,8 @@
         </div>
       </div>
 
-      <!-- Navigation + Dark/Light Mode Toggle + 3-Way Language Switcher -->
+      <!-- Dark/Light Mode Toggle + 3-Way Language Switcher -->
       <div class="flex flex-wrap items-center gap-2">
-        <nav class="hidden xl:flex items-center gap-3.5 text-xs font-semibold text-slate-300 mr-1">
-          <a id="nav-map" href="#land-weather-section" class="hover:text-emerald-400 transition">Map & Weather</a>
-          <a id="nav-market" href="#marketplace-section" class="hover:text-emerald-400 transition">Mandi Price AI</a>
-          <a id="nav-crops" href="#crops-lifecycle-section" class="hover:text-emerald-400 transition">Crops & Thresher</a>
-          <a id="nav-doctor" href="#crop-doctor-section" class="hover:text-emerald-400 transition">Disease & Dealers</a>
-          <a id="nav-labour" href="#labour-portal-section" class="hover:text-emerald-400 transition">Labour Portal</a>
-          <a id="nav-gov" href="#gov-portal-section" class="hover:text-emerald-400 transition">Gov Subsidy</a>
-        </nav>
-
         <!-- Dark / Light Mode Toggle Button -->
         <button
           id="theme-toggle-btn"
@@ -76,6 +67,79 @@
           </button>
           <button id="lang-btn-sd" onclick="setLanguage('sd')" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
             سنڌي
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         DEDICATED MODULE TABS BAR (One-Click Separate Tabs for Each Feature)
+         ===================================================================== -->
+    <div class="border-t border-slate-800/80 bg-slate-900/95">
+      <div class="mx-auto max-w-6xl px-4 py-2.5">
+        <div id="main-tabs-bar" class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          <button
+            id="main-tab-map"
+            type="button"
+            onclick="switchMainTab('map')"
+            class="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-extrabold text-slate-950 shadow-md transition-all"
+          >
+            <span>📍</span>
+            <span id="nav-map">Map & Weather</span>
+          </button>
+          <button
+            id="main-tab-doctor"
+            type="button"
+            onclick="switchMainTab('doctor')"
+            class="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all"
+          >
+            <span>🔬</span>
+            <span id="nav-doctor">Disease & Dealers</span>
+          </button>
+          <button
+            id="main-tab-voice"
+            type="button"
+            onclick="switchMainTab('voice')"
+            class="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all"
+          >
+            <span>🤖</span>
+            <span id="nav-voice">AI Assistant</span>
+          </button>
+          <button
+            id="main-tab-crops"
+            type="button"
+            onclick="switchMainTab('crops')"
+            class="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all"
+          >
+            <span>🌾</span>
+            <span id="nav-crops">Crops & Thresher</span>
+          </button>
+          <button
+            id="main-tab-market"
+            type="button"
+            onclick="switchMainTab('market')"
+            class="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all"
+          >
+            <span>📈</span>
+            <span id="nav-market">Mandi Price AI</span>
+          </button>
+          <button
+            id="main-tab-labour"
+            type="button"
+            onclick="switchMainTab('labour')"
+            class="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all"
+          >
+            <span>👷</span>
+            <span id="nav-labour">Labour Portal</span>
+          </button>
+          <button
+            id="main-tab-gov"
+            type="button"
+            onclick="switchMainTab('gov')"
+            class="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-950/90 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-emerald-500/60 hover:text-white transition-all col-span-2 sm:col-span-1"
+          >
+            <span>🏛️</span>
+            <span id="nav-gov">Gov Subsidy</span>
           </button>
         </div>
       </div>
@@ -680,6 +744,24 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900 p-1">
+            <button
+              id="lab-subtab-register"
+              type="button"
+              onclick="switchLabourSubTab('register')"
+              class="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-slate-950 transition"
+            >
+              ✋ Register Worker
+            </button>
+            <button
+              id="lab-subtab-find"
+              type="button"
+              onclick="switchLabourSubTab('find')"
+              class="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition"
+            >
+              🔍 Find Workers
+            </button>
+          </div>
           <button
             id="ui-lab-voice-btn"
             type="button"
@@ -698,8 +780,9 @@
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <!-- LEFT: Illiterate-Friendly Visual & Voice Labour Registration Form -->
         <form
+          id="labour-register-panel"
           onsubmit="submitLabourRegistration(event)"
-          class="agri-card space-y-5 rounded-3xl p-6 shadow-xl lg:col-span-5"
+          class="agri-card space-y-5 rounded-3xl p-6 shadow-xl lg:col-span-8 lg:col-start-3"
         >
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <span id="ui-lab-form-title" class="text-sm font-extrabold uppercase tracking-wider text-emerald-400">
@@ -834,7 +917,7 @@
         </form>
 
         <!-- RIGHT: Find Farm Labourers Directory (Search by District & Skill) -->
-        <div class="space-y-4 lg:col-span-7">
+        <div id="labour-find-panel" class="hidden space-y-4 lg:col-span-12">
           <div class="agri-card rounded-3xl p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div>
